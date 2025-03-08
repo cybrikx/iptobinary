@@ -316,7 +316,17 @@
     </div>
     <div class="menu" id="menu">
         <ul>
-            <li><a href="#" onclick="alert('IG: waqarro1'); event.preventDefault();">Contact</a></li>
+            <li>
+                <a href="#" onclick="showInstagram(); return false;">Contact</a>
+              </li>
+              
+              <script>
+                function showInstagram() {
+                  if (confirm("Follow me on Instagram: waqarro1")) {
+                    window.open("https://www.instagram.com/waqarro1", "_blank");
+                  }
+                }
+              </script>
             <li><a href="#" onclick="alert('About ipconverter : A simple IP converter & OCR tool made by @waqarro1'); event.preventDefault();">About</a></li>
             <li><a href="#" onclick="downloadWebsite(event)">Website Download</a></li>
 
