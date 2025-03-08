@@ -3,76 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoderX - IP Converter</title>
+    <title>waka - IP Converter & OCR</title>
+    <script src="https://unpkg.com/tesseract.js@5.1.0/dist/tesseract.min.js"></script>
     <style>
         body {
-            background-color: #000000;
+            background-color: #1a1a1a;
             color: #ffffff;
             font-family: -apple-system, BlinkMacSystemFont, "San Francisco", Arial, sans-serif;
             margin: 0;
             padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
             overflow: hidden;
-            position: relative;
-            user-select: none;
         }
 
-        .background {
+        .top-bar {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            perspective: 1000px;
-        }
-
-        .background-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: clamp(80px, 15vw, 150px); /* Responsive font size */
-            color: rgba(255, 255, 255, 0.05);
-            font-weight: 700;
-            transition: all 0.2s ease;
-        }
-
-        .particle {
-            position: absolute;
-            background: radial-gradient(circle, #ff6200 20%, #000000 80%);
-            border-radius: 50%;
-            transform: translateZ(0);
-            transition: transform 0.2s ease;
-            box-shadow: 0 0 15px rgba(255, 98, 0, 0.5);
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            min-height: 100vh;
+            background: rgba(51, 51, 51, 0.7);
+            padding: 5px 10px;
+            z-index: 3;
             display: flex;
-            flex-direction: column;
+            justify-content: space-between; /* Changed to space-between for logo+name and menu */
             align-items: center;
+            box-sizing: border-box;
+            border-bottom-left-radius: 10px; /* Curved bottom left */
+            border-bottom-right-radius: 10px; /* Curved bottom right */
+        }
+
+        .logo-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo {
+            width: 30px;
+            height: 30px;
+            background: #ff6200; /* Orange logo */
+            border-radius: 50%; /* Fully curved logo */
+            display: flex;
             justify-content: center;
-            padding: 20px;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        .name {
+            font-size: clamp(16px, 3vw, 20px);
+            font-weight: 500;
         }
 
         .menu-btn {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            width: 40px;
-            height: 40px;
+            width: 30px;
+            height: 30px;
             background: rgba(255, 255, 255, 0.1);
             border: none;
-            border-radius: 50%;
+            border-radius: 50%; /* Curved button */
             cursor: pointer;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            z-index: 3;
             transition: all 0.3s ease;
         }
 
@@ -81,11 +75,24 @@
         }
 
         .menu-btn span {
-            width: 20px;
+            width: 16px;
             height: 2px;
             background: #ffffff;
-            margin: 3px 0;
+            margin: 2px 0;
             transition: all 0.3s ease;
+            border-radius: 2px; /* Slightly curved lines */
+        }
+
+        .menu-btn.active span:nth-child(1) {
+            transform: rotate(45deg) translate(4px, 4px);
+        }
+
+        .menu-btn.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .menu-btn.active span:nth-child(3) {
+            transform: rotate(-45deg) translate(5px, -5px);
         }
 
         .menu {
@@ -95,13 +102,13 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 2;
             opacity: 0;
             transition: opacity 0.3s ease;
+            border-radius: 15px; /* Curved edges if visible */
         }
 
         .menu.active {
@@ -122,273 +129,260 @@
         .menu a {
             color: #ffffff;
             text-decoration: none;
-            font-size: clamp(18px, 5vw, 24px); /* Responsive font size */
+            font-size: clamp(16px, 5vw, 24px);
             font-weight: 500;
             transition: color 0.3s ease;
+            padding: 8px 16px;
+            border-radius: 10px; /* Curved menu items */
         }
 
         .menu a:hover {
             color: #ff6200;
+            background: rgba(255, 255, 255, 0.1);
         }
 
-        h1 {
-            color: #ffffff;
-            font-size: clamp(32px, 10vw, 48px); /* Responsive font size */
-            font-weight: 600;
-            margin-bottom: 30px;
-            text-shadow: 0 0 20px rgba(255, 98, 0, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        .content-wrapper {
-            background: rgba(255, 255, 255, 0.05);
-            padding: clamp(20px, 5vw, 40px); /* Responsive padding */
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            transition: transform 0.3s ease;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .selector {
+        .chat-container {
+            flex: 1;
             display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin-bottom: 20px;
-            justify-content: center;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 10px;
+            padding-top: 40px;
+            overflow-y: auto;
         }
 
-        .selector button {
-            padding: 10px 20px;
-            background: rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: clamp(14px, 4vw, 16px); /* Responsive font size */
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .selector button.active {
-            background: rgba(255, 98, 0, 0.8);
-            transform: translateY(-2px);
-        }
-
-        .content {
-            display: none;
-        }
-
-        .content.active {
-            display: block;
-        }
-
-        input {
-            padding: 12px;
-            width: 100%;
-            max-width: 300px;
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 10px;
-            color: #ffffff;
-            font-size: clamp(14px, 4vw, 16px); /* Responsive font size */
+        .output-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
             margin-bottom: 15px;
-            transition: transform 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .message {
+            padding: 8px 12px;
+            border-radius: 15px; /* More curved messages */
+            max-width: 80%;
+            font-size: clamp(12px, 3.5vw, 16px);
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .user-message {
+            background: rgba(211, 211, 211, 0.7);
+            margin-right: 10px;
+        }
+
+        .bot-message {
+            background: rgba(51, 51, 51, 0.7);
+            margin-left: 10px;
+        }
+
+        .bot-logo {
+            width: 16px;
+            height: 16px;
+            background: #ff6200;
+            border-radius: 50%; /* Already curved */
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .input-section {
+            background: rgba(51, 51, 51, 0.7);
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            border-radius: 20px; /* Highly curved input section */
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 8px 8px 8px 30px;
+            background: rgba(128, 128, 128, 0.7);
+            border: none;
+            border-radius: 15px; /* Curved input */
+            color: #ffffff;
+            font-size: clamp(12px, 3.5vw, 16px);
             box-sizing: border-box;
         }
 
-        input::placeholder {
+        input[type="text"]:focus {
+            outline: none;
+            background: rgba(128, 128, 128, 0.9);
+        }
+
+        input[type="text"]::placeholder {
             color: rgba(255, 255, 255, 0.5);
         }
 
-        button.convert {
-            padding: 10px 20px;
-            background: #ff6200;
-            color: #ffffff;
+        .upload-btn {
+            position: absolute;
+            left: 5px;
+            top: 50%;
+            transform: translateY(-50%);
+            padding: 2px 5px;
+            background: #ffffff; /* White button */
+            color: #000000; /* Black text */
             border: none;
-            border-radius: 10px;
+            border-radius: 10px; /* Curved upload button */
             cursor: pointer;
-            font-size: clamp(14px, 4vw, 16px); /* Responsive font size */
-            font-weight: 500;
-            transition: all 0.3s ease;
-            width: 100%;
-            max-width: 200px;
+            font-size: 14px;
+            transition: background 0.3s ease;
         }
 
-        button.convert:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(255, 98, 0, 0.4);
+        .upload-btn:hover {
+            background: #e0e0e0; /* Slightly darker white on hover */
         }
 
-        .result {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: clamp(14px, 4vw, 16px); /* Responsive font size */
-            transition: transform 0.3s ease;
-            word-break: break-word;
+        .convert-btn {
+            padding: 8px 16px;
+            background: #ffffff; /* White button */
+            color: #000000; /* Black text */
+            border: none;
+            border-radius: 15px; /* Curved convert button */
+            cursor: pointer;
+            font-size: clamp(12px, 3.5vw, 16px);
+            transition: background 0.3s ease;
         }
 
-        .processing-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
+        .convert-btn:hover {
+            background: #e0e0e0; /* Slightly darker white on hover */
+        }
+
+        input[type="file"] {
             display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2;
-        }
-
-        .processing-animation {
-            width: clamp(60px, 15vw, 80px); /* Responsive size */
-            height: clamp(60px, 15vw, 80px);
-            border: 4px solid #ff6200;
-            border-top: 4px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
         }
 
         @media (max-width: 600px) {
-            .container {
-                padding: 10px;
+            .input-section {
+                flex-direction: column;
+                gap: 8px;
+                max-width: none;
+                margin: 0;
+                border-radius: 15px; /* Still curved on mobile */
+            }
+            .input-wrapper, .convert-btn {
+                width: 100%;
+            }
+            input[type="text"] {
+                padding: 8px 8px 8px 30px;
+                border-radius: 12px; /* Slightly less curved on mobile */
+            }
+            .chat-container {
+                padding: 8px;
+                padding-top: 35px;
+            }
+            .top-bar {
+                padding: 3px 8px;
             }
             .menu-btn {
-                top: 10px;
-                right: 10px;
+                width: 28px;
+                height: 28px;
             }
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            .menu-btn span {
+                width: 14px;
+                margin: 2px 0;
+            }
+            .message {
+                max-width: 90%;
+                border-radius: 12px; /* Slightly less curved on mobile */
+            }
         }
     </style>
 </head>
 <body>
-    <div class="background" id="background">
-        <div class="background-text" id="bgText">coderx</div>
+    <div class="top-bar">
+        <div class="logo-wrapper">
+            <div class="logo">CA</div>
+            <div class="name">Coderx Ahmad</div>
+        </div>
+        <button class="menu-btn" id="menuBtn">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
     </div>
-    <button class="menu-btn" id="menuBtn">
-        <span></span>
-        <span></span>
-        <span></span>
-    </button>
     <div class="menu" id="menu">
         <ul>
-            <li><a href="#" onclick="showAbout(event)">About</a></li>
-            <li><a href="#" onclick="downloadWebsite(event)">Download</a></li>
-            <li><a href="#" onclick="alert('Contact:\nIG waqarro1'); event.preventDefault();">Contact</a></li>
-            <li><a href="#" onclick="alert('CoderX Tools\nPremium IP conversion with style'); event.preventDefault();">Tools</a></li>
+            <li><a href="#" onclick="alert('IG: waqarro1'); event.preventDefault();">Contact</a></li>
+            <li><a href="#" onclick="alert('About ipconverter : A simple IP converter & OCR tool made by @waqarro1'); event.preventDefault();">About</a></li>
+            <li><a href="#" onclick="downloadWebsite(event)">Website Download</a></li>
+
         </ul>
     </div>
-    <div class="processing-overlay" id="processing">
-        <div class="processing-animation"></div>
-    </div>
-    <div class="container">
-        <h1 id="title">CoderX IP</h1>
-        <div class="content-wrapper" id="contentWrapper">
-            <div class="selector">
-                <button onclick="showSection('ip2bin')" class="active">IP to Binary</button>
-                <button onclick="showSection('bin2ip')">Binary to IP</button>
+    <div class="chat-container" id="chatContainer">
+        <div class="output-area" id="outputArea"></div>
+        <div class="input-section">
+            <div class="input-wrapper">
+                <label for="fileInput" class="upload-btn">📎</label>
+                <input type="text" id="input" placeholder=" Enter IP or Binary">
+                <input type="file" id="fileInput" accept="image/*,application/pdf" onchange="extractTextFromFile()">
             </div>
-            <div id="ip2bin" class="content active">
-                <input type="text" id="ipInput" placeholder="Enter IP (e.g., 192.168.1.1)">
-                <br>
-                <button class="convert" onclick="convertIpToBinary()">Convert</button>
-                <div id="ipResult" class="result"></div>
-            </div>
-            <div id="bin2ip" class="content">
-                <input type="text" id="binaryInput" placeholder="Enter Binary (e.g., 11000000.10101000...)">
-                <br>
-                <button class="convert" onclick="convertBinaryToIp()">Convert</button>
-                <div id="binaryResult" class="result"></div>
-            </div>
+            <button class="convert-btn" onclick="handleTextInput()">Convert</button>
         </div>
     </div>
 
     <script>
-        // Background particles
-        const background = document.getElementById('background');
-        const particles = [];
-        for (let i = 0; i < 15; i++) {
-            const size = Math.random() * 20 + 5; // Size between 5px and 25px
-            const particle = document.createElement('div');
-            particle.className = 'particle';
-            particle.style.width = size + 'px';
-            particle.style.height = size + 'px';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.transform = `translateZ(${Math.random() * 400 - 200}px)`;
-            background.appendChild(particle);
-            particles.push({
-                element: particle,
-                x: parseFloat(particle.style.left),
-                y: parseFloat(particle.style.top),
-                z: parseFloat(particle.style.transform.match(/-?\d+/)[0]),
-                vx: (Math.random() - 0.5) * 0.05,
-                vy: (Math.random() - 0.5) * 0.05,
-                vz: (Math.random() - 0.5) * 0.05,
-                size: size
-            });
-        }
-
         // Menu toggle
         const menuBtn = document.getElementById('menuBtn');
         const menu = document.getElementById('menu');
-        const container = document.querySelector('.container');
         menuBtn.addEventListener('click', () => {
+            menuBtn.classList.toggle('active');
             menu.classList.toggle('active');
-            container.style.filter = menu.classList.contains('active') ? 'blur(5px)' : 'none';
-            const spans = menuBtn.querySelectorAll('span');
-            spans[0].style.transform = menu.classList.contains('active') ? 'rotate(45deg) translate(5px, 5px)' : 'none';
-            spans[1].style.opacity = menu.classList.contains('active') ? '0' : '1';
-            spans[2].style.transform = menu.classList.contains('active') ? 'rotate(-45deg) translate(6px, -6px)' : 'none';
         });
 
-        // Section toggle
-        function showSection(sectionId) {
-            document.querySelectorAll('.content').forEach(content => content.classList.remove('active'));
-            document.querySelectorAll('.selector button').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(sectionId).classList.add('active');
-            document.querySelector(`button[onclick="showSection('${sectionId}')"]`).classList.add('active');
+        // IP/Binary Conversion function
+        function convert(inputValue, outputArea, chatContainer) {
+            let result = '';
+            const value = inputValue.trim();
+
+            if (validateIp(value)) {
+                const octets = value.split('.');
+                result = octets.map(octet => parseInt(octet).toString(2).padStart(8, '0')).join('.');
+            } else if (validateBinary(value)) {
+                const octets = value.split('.');
+                result = octets.map(octet => parseInt(octet, 2)).join('.');
+            } else {
+                result = 'Invalid input';
+            }
+
+            const botMessage = document.createElement('div');
+            botMessage.className = 'message bot-message';
+            botMessage.innerHTML = `<span class="bot-logo"></span>${result}`;
+            outputArea.appendChild(botMessage);
+
+            const isScrolledToBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 10;
+            if (isScrolledToBottom) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
         }
 
-        // Conversion functions
-        function convertIpToBinary() {
-            const processing = document.getElementById('processing');
-            processing.style.display = 'flex';
-            setTimeout(() => {
-                const ip = document.getElementById('ipInput').value;
-                if (!validateIp(ip)) {
-                    document.getElementById('ipResult').innerHTML = 'Invalid IP address';
-                } else {
-                    const octets = ip.split('.');
-                    let binary = octets.map(octet => parseInt(octet).toString(2).padStart(8, '0')).join('.');
-                    document.getElementById('ipResult').innerHTML = binary;
-                }
-                processing.style.display = 'none';
-            }, 1000);
-        }
+        // Manual text input conversion
+        function handleTextInput() {
+            const input = document.getElementById('input');
+            const outputArea = document.getElementById('outputArea');
+            const chatContainer = document.getElementById('chatContainer');
 
-        function convertBinaryToIp() {
-            const processing = document.getElementById('processing');
-            processing.style.display = 'flex';
-            setTimeout(() => {
-                const binary = document.getElementById('binaryInput').value;
-                if (!validateBinary(binary)) {
-                    document.getElementById('binaryResult').innerHTML = 'Invalid binary format';
-                } else {
-                    const octets = binary.split('.');
-                    let ip = octets.map(octet => parseInt(octet, 2)).join('.');
-                    document.getElementById('binaryResult').innerHTML = ip;
-                }
-                processing.style.display = 'none';
-            }, 1000);
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = input.value.trim();
+            outputArea.appendChild(userMessage);
+
+            convert(input.value, outputArea, chatContainer);
+            input.value = '';
         }
 
         // Validation
@@ -400,76 +394,85 @@
             return /^([0-1]{8}\.){3}[0-1]{8}$/.test(binary);
         }
 
-        // Menu functions
-        function showAbout(event) {
-            event.preventDefault();
-            alert('CoderX IP Converter\nA sleek, modern tool for IP conversions\nInspired by premium design aesthetics');
-            menu.classList.remove('active');
-            container.style.filter = 'none';
-            resetMenuButton();
+        // Handle Enter key for text input
+        document.getElementById('input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleTextInput();
+        });
+
+        // OCR Text Extraction and Conversion function
+        async function extractTextFromFile() {
+            const fileInput = document.getElementById('fileInput');
+            const outputArea = document.getElementById('outputArea');
+            const chatContainer = document.getElementById('chatContainer');
+            const file = fileInput.files[0];
+
+            if (!file) return;
+
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user-message';
+            userMessage.textContent = `Uploaded file: ${file.name}`;
+            outputArea.appendChild(userMessage);
+
+            try {
+                let text = '';
+                if (file.type === 'application/pdf') {
+                    const reader = new FileReader();
+                    reader.onload = async () => {
+                        const pdfData = new Uint8Array(reader.result);
+                        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+                        const page = await pdf.getPage(1);
+                        const viewport = page.getViewport({ scale: 1.5 });
+                        const canvas = document.createElement('canvas');
+                        const context = canvas.getContext('2d');
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        await page.render({ canvasContext: context, viewport: viewport }).promise;
+                        text = await Tesseract.recognize(canvas.toDataURL('image/png'), 'eng').then(({ data }) => data.text);
+                        processExtractedText(text);
+                    };
+                    reader.readAsArrayBuffer(file);
+                } else {
+                    text = await Tesseract.recognize(file, 'eng').then(({ data }) => data.text);
+                    processExtractedText(text);
+                }
+            } catch (error) {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = `<span class="bot-logo"></span>Error extracting text: ${error.message}`;
+                outputArea.appendChild(botMessage);
+            }
+
+            function processExtractedText(text) {
+                const cleanedText = text.trim().replace(/\s+/g, '');
+                const botMessage = document.createElement('div');
+                botMessage.className = 'message bot-message';
+                botMessage.innerHTML = `<span class="bot-logo"></span>Extracted: ${cleanedText}`;
+                outputArea.appendChild(botMessage);
+
+                convert(cleanedText, outputArea, chatContainer);
+
+                const isScrolledToBottom = chatContainer.scrollHeight - chatContainer.scrollTop <= chatContainer.clientHeight + 10;
+                if (isScrolledToBottom) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            }
+
+            fileInput.value = '';
         }
 
+        // Download website function
         function downloadWebsite(event) {
             event.preventDefault();
             const htmlContent = document.documentElement.outerHTML;
             const blob = new Blob([htmlContent], { type: 'text/html' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
-            a.download = 'CoderX_IP_Converter.html';
+            a.download = 'coderx_IP_Converter_OCR.html';
             a.click();
             menu.classList.remove('active');
-            container.style.filter = 'none';
-            resetMenuButton();
+            menuBtn.classList.remove('active');
         }
-
-        function resetMenuButton() {
-            const spans = menuBtn.querySelectorAll('span');
-            spans[0].style.transform = 'none';
-            spans[1].style.opacity = '1';
-            spans[2].style.transform = 'none';
-        }
-
-        // Animation loop
-        function animate() {
-            particles.forEach(p => {
-                p.x += p.vx;
-                p.y += p.vy;
-                p.z += p.vz;
-                
-                if (p.x < 0 || p.x > 100) p.vx *= -1;
-                if (p.y < 0 || p.y > 100) p.vy *= -1;
-                if (p.z < -200 || p.z > 200) p.vz *= -1;
-                
-                p.element.style.left = p.x + '%';
-                p.element.style.top = p.y + '%';
-                p.element.style.transform = `translateZ(${p.z}px) scale(${1 + p.z / 400})`;
-            });
-            requestAnimationFrame(animate);
-        }
-        animate();
-
-        // Mouse/touch interactions
-        function handleMove(e) {
-            const isTouch = e.type.startsWith('touch');
-            const mouseX = isTouch ? e.touches[0].clientX : e.clientX;
-            const mouseY = isTouch ? e.touches[0].clientY : e.clientY;
-            const bgText = document.getElementById('bgText');
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            const dx = (mouseX - centerX) * 0.05;
-            const dy = (mouseY - centerY) * 0.05;
-            bgText.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
-
-            const title = document.getElementById('title');
-            const contentWrapper = document.getElementById('contentWrapper');
-            const tiltX = (mouseX / window.innerWidth - 0.5) * 10;
-            const tiltY = (mouseY / window.innerHeight - 0.5) * 10;
-            title.style.transform = `translate(${tiltX}px, ${tiltY}px)`;
-            contentWrapper.style.transform = `translate(${tiltX * 2}px, ${tiltY * 2}px)`;
-        }
-
-        document.addEventListener('mousemove', handleMove);
-        document.addEventListener('touchmove', handleMove);
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.9.359/pdf.min.js"></script>
 </body>
 </html>
