@@ -20,7 +20,10 @@
 
 1. `Clone the repository:`
 
-   git clone https://github.com/cybrikx/wani-ai.git
+```bash
+git clone https://github.com/cybrikx/wani-ai.git
+```
+
 2. `Navigate to the project folder and open index.html` in any modern browser (e.g., Chrome, Firefox, Edge).
 3. `Optional: Enhance with AI:` Place TensorFlow.js model files in the `/models` directory and adjust the `loadModel` function in the script.
 
